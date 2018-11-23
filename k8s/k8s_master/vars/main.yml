@@ -1,0 +1,5 @@
+---
+# Variables here are applicable to all host groups
+k8s_username: k8suser
+k8s_net: 10.244.0.0/16
+k8s_token: ""

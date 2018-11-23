@@ -1,0 +1,21 @@
+- name: install needed packages
+  apt:
+    name: ['apt-transport-https', 'curl', 'ca-certificates', 'postfix', 'openssh-server']
+    update_cache: yes
+    cache_valid_time: 3600
+    state: present
+
+- name: Add GitLab repos
+  shell: |
+    curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | bash
+
+- name: Install GitLab
+  apt:
+    name: gitlab-ce
+    update_cache: yes
+    state: present
+
+- name: Configure and start GitLab
+  shell: |
+    gitlab-ctl reconfigure && \
+    gitlab-ctl start

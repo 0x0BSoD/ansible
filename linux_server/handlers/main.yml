@@ -1,0 +1,14 @@
+- name: restart zabbix
+  service:
+    name: zabbix-agent
+    state: restarted
+
+- name: restart prometheus
+  service:
+    name: prometheus
+    state: restarted
+
+- name: restart node_exporter
+  service:
+    name: prometheus-node-exporter
+    state: restarted

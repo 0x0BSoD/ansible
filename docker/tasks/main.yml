@@ -1,0 +1,35 @@
+- name: install needed packages
+  apt:
+    name: ['apt-transport-https', 'curl', 'ca-certificates', 'software-properties-common', 'gnupg2', 'git']
+    update_cache: yes
+    cache_valid_time: 3600
+    state: present
+
+- name: get docker gpg
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: get docker repo
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+    state: present
+
+- name: install Docker-ce
+  apt:
+    name: ['docker-ce={{ docker_version }}']
+    update_cache: yes
+    cache_valid_time: 3600
+    state: present
+
+- name: install Docker Compose
+  get_url:
+    url: "https://github.com/docker/compose/releases/download/1.22.0/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
+    dest: /usr/local/bin/docker-compose
+    mode: 0755
+
+- name: Start service docker, if not running
+  service:
+    name: docker
+    enabled: yes
+    state: started

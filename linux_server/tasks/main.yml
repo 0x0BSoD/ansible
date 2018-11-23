@@ -1,0 +1,53 @@
+- name: Download zabbix
+  get_url:
+    url: http://repo.zabbix.com/zabbix/3.0/debian/pool/main/z/zabbix-release/zabbix-release_3.0-2%2Bstretch_all.deb
+    dest: /tmp/zabbix.deb
+
+- name: Install zabbix
+  apt:
+    deb: /tmp/zabbix.deb
+
+- name: Install packages
+  apt:
+    name:  ["gosu","zabbix-agent","prometheus","prometheus-node-exporter","open-vm-tools"]
+    update_cache: yes
+    cache_valid_time: 3600
+    state: present
+
+- name: Copy zabbix config
+  copy:
+    src: files/etc/zabbix/zabbix_agentd.conf
+    dest: /etc/zabbix/zabbix_agentd.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Set ip in zabbix config
+  lineinfile:
+    dest: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^Hostname='
+    line: "Hostname={{ inventory_hostname }}"
+
+- name: Set hostname in zabbix config
+  lineinfile:
+    dest: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^ListenIP='
+    line: "ListenIP={{ ansible_default_ipv4.address }}"
+
+- name: Add prometheus user
+  user:
+    name: prometheus
+    group: prometheus
+
+- name: Copy prometheus config
+  copy:
+    src: files/etc/prometheus/prometheus.yml
+    dest: /etc/prometheus/prometheus.yml
+    owner: prometheus
+    group: prometheus
+    mode: 0644
+
+  notify:
+  - restart zabbix
+  - restart prometheus
+  - restart node_exporter

@@ -1,0 +1,47 @@
+- name: Download gitlab-runner
+  get_url:
+    url: https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64
+    dest: /usr/local/bin/gitlab-runner
+
+- name: Set exec bit to gitlab-runner
+  file:
+    dest: /usr/local/bin/gitlab-runner
+    mode: a+x
+
+- name: Add gitlab-runner user
+  user:
+    name: gitlab-runner
+    groups:
+      - docker
+    state: present
+    shell: /bin/bash
+
+- name: Copy gitlab-runner config
+  copy:
+    src: files/config.toml
+    dest: /etc/gitlab-runner/config.toml
+    owner: root
+    group: root
+    mode: 0644
+
+
+- name: Set shell token in config
+  lineinfile:
+    dest: /etc/gitlab-runner/config.toml
+    regexp: 'token = %TOKEN_SHELL%'
+    line: "token = {{ shell_token }}"
+
+- name: Set docker token in config
+  lineinfile:
+    dest: /etc/gitlab-runner/config.toml
+    regexp: 'token = %TOKEN_DOCKER%'
+    line: "token = {{ docker_token }}"
+
+- name: Set gitlab address in config
+  lineinfile:
+    dest: /etc/gitlab-runner/config.toml
+    regexp: 'url = %GITLAB_HOST%'
+    line: "url = {{ gitlab_host }}"
+
+- name: Setup gitlab-runner
+  shell: gitlab-runner start

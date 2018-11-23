@@ -1,0 +1,32 @@
+- name: install needed packages
+  apt:
+    name: ["apt-transport-https", "curl", "ca-certificates", "software-properties-common", "openjdk-8-jre", "python-pip"]
+    update_cache: yes
+    cache_valid_time: 3600
+    state: present
+
+- name: for sslv3 validate
+  shell: pip install --upgrade pip setuptools urllib3 pyOpenSSL ndg-httpsclient pyasn1
+
+- name: get jenkins gpg
+  apt_key:
+    url: https://pkg.jenkins.io/debian/jenkins-ci.org.key
+    state: present
+
+- name: get jenkins repo
+  apt_repository:
+    repo: deb [arch=amd64] https://pkg.jenkins.io/debian-stable binary/
+    state: present
+
+- name: install jenkins
+  apt:
+    name: jenkins
+    update_cache: yes
+    cache_valid_time: 3600
+    state: present
+
+- name: Start service jenkins, if not running
+  service:
+    name: jenkins
+    enabled: yes
+    state: started

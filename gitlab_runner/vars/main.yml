@@ -1,0 +1,4 @@
+---
+shell_token: ex-ample
+docker_token: ex-ample
+gitlab_host: https://gitlab.local

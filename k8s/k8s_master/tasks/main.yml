@@ -1,0 +1,56 @@
+- name: initialize the cluster
+  shell: "kubeadm init --pod-network-cidr={{ k8s_net }} >> cluster_initialized.txt"
+  args:
+    chdir: $HOME
+    creates: cluster_initialized.txt
+
+- name: create .kube directory
+  become: yes
+  become_user: "{{ k8s_username }}"
+  file:
+    path: $HOME/.kube
+    state: directory
+    mode: 0755
+
+- name: copy admin.conf to user's kube config
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ k8s_username }}/.kube/config"
+    remote_src: yes
+    owner: "{{ k8s_username }}"
+
+- name: Copy flannel config
+  become: yes
+  become_user: "{{ k8s_username }}"
+  copy:
+    src: files/kube-flannel.yml
+    dest: $HOME/.kube-flannel.yml
+    owner: "{{ k8s_username }}"
+    group: "{{ k8s_username }}"
+    mode: 0644
+
+- name: Set network in flannel config
+  become: yes
+  become_user: "{{ k8s_username }}"
+  lineinfile:
+    dest: $HOME/.kube-flannel.yml
+    regexp: '"Network": %K8S_NET%,'
+    line: '"Network": {{ k8s_net }},'
+
+- name: install Pod network
+  become: yes
+  become_user: "{{ k8s_username }}"
+  #  TODO: with this something
+  # kubectl apply -f $HOME/.kube-flannel.yml >> pod_network_setup.txt
+  shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml >> pod_network_setup.txt
+  args:
+    chdir: $HOME
+    creates: pod_network_setup.txt
+
+- name: get join command
+  shell: kubeadm token create --print-join-command
+  register: join_command_raw
+
+- name: set join command
+  set_fact:
+    join_command: "{{ join_command_raw.stdout_lines[0] }}"
