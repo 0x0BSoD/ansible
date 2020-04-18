@@ -1,0 +1,25 @@
+---
+
+- name: Disable selinux
+  command: >
+    setenforce 0
+
+- name: Disable selinux permament
+  lineinfile:
+    dest: "/etc/sysconfig/selinux"
+    regexp: "^SELINUX=enforcing"
+    line: "SELINUX=disabled"
+    state: present
+
+- name: Configure firewalld
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: disabled
+  with_items:
+    - 6443/tcp
+    - 2379-2380/tcp
+    - 10250/tcp
+    - 10251/tcp
+    - 10252/tcp
+    - 10255/tcp
