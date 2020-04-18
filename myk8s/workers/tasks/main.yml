@@ -1,0 +1,19 @@
+---
+
+# ==================================
+# system config
+# ==================================
+- name: Configure firewalld
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: disabled
+  with_items:
+    - 10250/tcp
+    - 10255/tcp
+    - 30000-32767/tcp
+    - 6783/tcp
+
+
+- name: Join worker node
+  command: "{{ hostvars['k8-master'].add_to_cluster_cmd.stdout }}"

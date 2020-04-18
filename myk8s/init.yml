@@ -6,3 +6,7 @@
 - hosts: master
   roles:
     - master
+
+- hosts: workers
+  roles:
+    - workers

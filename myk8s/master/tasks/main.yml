@@ -21,39 +21,6 @@
     name: br_netfilter
     state: present
 
-- name: Enable btidge for iptables
-  sysctl:
-    name: net.bridge.bridge-nf-call-iptables
-    state: present
-    value: "1"
-    reload: yes
-
-- name: Add k8s repo
-  yum_repository:
-    name: Kubernetes
-    description: Kubernetes YUM repo
-    file: kubernetes
-    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
-    gpgkey:
-        - "https://packages.cloud.google.com/yum/doc/yum-key.gpg"
-        - "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"
-    enabled: yes
-
-# ==================================
-# install packages
-# ==================================
-
-- name: Install kubeadm
-  yum:
-    name: kubeadm
-    state: present
-
-- name: Start and enable kublet
-  service:
-    name: kubelet
-    enabled: yes
-    state: started
-
 # ==================================
 # k8s init
 # ==================================
@@ -93,3 +60,7 @@
   command: >
     kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version={{ k8s_version.stdout }}"
 
+- name: Get join command
+  command: >
+    kubeadm token create --print-join-command
+  register: add_to_cluster_cmd

@@ -35,6 +35,24 @@
     line: "SELINUX=disabled"
     state: present
 
+- name: Enable bridge for iptables
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    state: present
+    value: "1"
+    reload: yes
+
+- name: Add k8s repo
+  yum_repository:
+    name: Kubernetes
+    description: Kubernetes YUM repo
+    file: kubernetes
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+    gpgkey:
+        - "https://packages.cloud.google.com/yum/doc/yum-key.gpg"
+        - "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"
+    enabled: yes
+
 - name: Add docker repo
   yum_repository:
     name: Docker
@@ -44,13 +62,36 @@
     gpgkey: https://download.docker.com/linux/centos/gpg
     enabled: yes
 
-- name: Install docker
+- name: Create docker directories
+  file:
+    path: 
+      - /etc/docker
+      - /etc/systemd/system/docker.service.d
+    state: directory
+    mode: '0755'
+
+- name: Copy daemon.json
+  copy:
+    src: docker/daemon.json
+    dest: /etc/docker/daemon.json
+
+- name: Install docker and kubeadm
   yum:
-    name: docker-ce-3:18.09.0-3.el7
+    name: 
+      - device-mapper-persistent-data 
+      - lvm2
+      - docker-ce-3:18.09.0-3.el7
+      - kubeadm
     state: present
+
+- name: Start and enable kublet
+  service:
+    name: kubelet
+    enabled: yes
+    state: restarted
 
 - name: Start and enable docker
   service:
     name: docker
     enabled: yes
-    state: started
+    state: restarted
