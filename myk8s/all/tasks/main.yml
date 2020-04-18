@@ -1,8 +1,32 @@
 ---
+- name: Set hostname
+  hostname:
+    name: "{{inventory_hostname}}"
 
-- name: Disable selinux
-  command: >
-    setenforce 0
+- name: Disable swap
+  shell: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: Rm swapfile from fstab
+  mount:
+    name: swap
+    fstype: swap
+    state: absent
+
+- name: Update the /etc/hosts file with node name
+  lineinfile:
+    path: "/etc/hosts"
+    regexp: ".*\t{{ hostvars[item]['ansible_hostname']}}\t{{ hostvars[item]['ansible_hostname']}}"
+    line: "{{ hostvars[item]['ansible_env'].SSH_CONNECTION.split(' ')[2] }}\t{{ hostvars[item]['ansible_hostname']}}\t{{ hostvars[item]['ansible_hostname']}}"
+    state: present
+    backup: yes
+  register: etchostsupdate
+  when: ansible_hostname != "{{ item }}" or ansible_hostname == "{{ item }}"
+  with_items: "{{groups['all']}}"
+
+- name: Disable SELinux
+  selinux:
+    state: disabled  
 
 - name: Disable selinux permament
   lineinfile:
@@ -11,15 +35,22 @@
     line: "SELINUX=disabled"
     state: present
 
-- name: Configure firewalld
-  firewalld:
-    port: "{{ item }}"
-    permanent: yes
-    state: disabled
-  with_items:
-    - 6443/tcp
-    - 2379-2380/tcp
-    - 10250/tcp
-    - 10251/tcp
-    - 10252/tcp
-    - 10255/tcp
+- name: Add docker repo
+  yum_repository:
+    name: Docker
+    description: Docker YUM repo
+    file: docker
+    baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+    gpgkey: https://download.docker.com/linux/centos/gpg
+    enabled: yes
+
+- name: Install docker
+  yum:
+    name: docker-ce-3:18.09.0-3.el7
+    state: present
+
+- name: Start and enable docker
+  service:
+    name: docker
+    enabled: yes
+    state: started

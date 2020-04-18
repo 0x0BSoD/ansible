@@ -1,0 +1,95 @@
+---
+
+# ==================================
+# system config
+# ==================================
+- name: Configure firewalld
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: disabled
+  with_items:
+    - 6443/tcp
+    - 2379-2380/tcp
+    - 10250/tcp
+    - 10251/tcp
+    - 10252/tcp
+    - 10255/tcp
+
+- name: Add the br_netfilter module
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Enable btidge for iptables
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    state: present
+    value: "1"
+    reload: yes
+
+- name: Add k8s repo
+  yum_repository:
+    name: Kubernetes
+    description: Kubernetes YUM repo
+    file: kubernetes
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+    gpgkey:
+        - "https://packages.cloud.google.com/yum/doc/yum-key.gpg"
+        - "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"
+    enabled: yes
+
+# ==================================
+# install packages
+# ==================================
+
+- name: Install kubeadm
+  yum:
+    name: kubeadm
+    state: present
+
+- name: Start and enable kublet
+  service:
+    name: kubelet
+    enabled: yes
+    state: started
+
+# ==================================
+# k8s init
+# ==================================
+
+- name: Check for admin.conf exists in /etc/kubernetes     
+  stat: 
+    path: /etc/kubernetes/admin.conf
+  register: p
+
+- name: Initialize the cluster
+  command: >
+    kubeadm init --pod-network-cidr={{ k8s_net }} >> cluster_initialized.txt
+    chdir: /root
+    creates: /etc/kubernetes/admin.conf
+  when: not p.stat.exists
+
+- name: Create .kube directory
+  become: yes
+  become_user: root
+  file:
+    path: $HOME/.kube
+    state: directory
+    mode: 0755
+
+- name: Copy admin.conf to user's kube config
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/root/.kube/config"
+    remote_src: yes
+    owner: root
+
+- name: Get k8s version
+  shell: "kubectl version | base64 | tr -d '\n'"
+  register: k8s_version
+
+- name: Init k8s network
+  command: >
+    kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version={{ k8s_version.stdout }}"
+
