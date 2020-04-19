@@ -75,18 +75,9 @@
       - docker-ce-3:18.09.0-3.el7
       - kubeadm
     state: present
-
-- name: Start and enable kublet
-  service:
-    name: kubelet
-    enabled: yes
-    state: restarted
-
-- name: Start and enable docker
-  service:
-    name: docker
-    enabled: yes
-    state: restarted
+  notify:
+    - Start and enable kublet
+    - Start and enable docker
 
 - name: Create docker directories
   file:

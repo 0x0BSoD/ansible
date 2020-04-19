@@ -15,6 +15,7 @@
     - 10251/tcp
     - 10252/tcp
     - 10255/tcp
+  notify: Reload firewalld
 
 # ==================================
 # k8s init

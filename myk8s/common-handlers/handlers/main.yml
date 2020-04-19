@@ -1,0 +1,16 @@
+---
+- name: Reload firewalld
+  command: >
+    firewall-cmd --reload
+
+- name: Start and enable kublet
+  service:
+    name: kubelet
+    enabled: yes
+    state: restarted
+
+- name: Start and enable docker
+  service:
+    name: docker
+    enabled: yes
+    state: restarted

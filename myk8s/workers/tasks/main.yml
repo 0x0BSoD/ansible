@@ -13,7 +13,7 @@
     - 10255/tcp
     - 30000-32767/tcp
     - 6783/tcp
-
+  notify: Reload firewalld
 
 - name: Join worker node
   command: "{{ hostvars['k8-master'].add_to_cluster_cmd.stdout }}"
