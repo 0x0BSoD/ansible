@@ -35,6 +35,11 @@
     line: "SELINUX=disabled"
     state: present
 
+- name: Add the br_netfilter module
+  modprobe:
+    name: br_netfilter
+    state: present
+
 - name: Enable bridge for iptables
   sysctl:
     name: net.bridge.bridge-nf-call-iptables
@@ -62,19 +67,6 @@
     gpgkey: https://download.docker.com/linux/centos/gpg
     enabled: yes
 
-- name: Create docker directories
-  file:
-    path: 
-      - /etc/docker
-      - /etc/systemd/system/docker.service.d
-    state: directory
-    mode: '0755'
-
-- name: Copy daemon.json
-  copy:
-    src: docker/daemon.json
-    dest: /etc/docker/daemon.json
-
 - name: Install docker and kubeadm
   yum:
     name: 
@@ -95,3 +87,20 @@
     name: docker
     enabled: yes
     state: restarted
+
+- name: Create docker directories
+  file:
+    path: /etc/docker
+    state: directory
+    mode: '0755'
+
+- name: Create docker directories
+  file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: '0755'
+
+- name: Copy daemon.json
+  copy:
+    src: docker/daemon.json
+    dest: /etc/docker/daemon.json

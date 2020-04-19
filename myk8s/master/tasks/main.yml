@@ -7,7 +7,7 @@
   firewalld:
     port: "{{ item }}"
     permanent: yes
-    state: disabled
+    state: enabled
   with_items:
     - 6443/tcp
     - 2379-2380/tcp
@@ -15,11 +15,6 @@
     - 10251/tcp
     - 10252/tcp
     - 10255/tcp
-
-- name: Add the br_netfilter module
-  modprobe:
-    name: br_netfilter
-    state: present
 
 # ==================================
 # k8s init
@@ -31,8 +26,8 @@
   register: p
 
 - name: Initialize the cluster
-  command: >
-    kubeadm init --pod-network-cidr={{ k8s_net }} >> cluster_initialized.txt
+  shell: kubeadm init --pod-network-cidr={{ k8s_net }} >> cluster_initialized.txt
+  args:
     chdir: /root
     creates: /etc/kubernetes/admin.conf
   when: not p.stat.exists
