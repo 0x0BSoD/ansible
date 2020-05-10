@@ -1,12 +1,25 @@
 ---
-- hosts: all
+- hosts: 
+    - masters
+    - workers
+    - lbs
   roles:
-    - all  
+    - common
 
-- hosts: master
+- hosts:
+    - masters
+    - workers
+  roles:
+    - dkr_kublet
+
+- hosts: lbs
+  roles:
+    - lb
+
+- hosts: masters
   roles:
     - master
 
 - hosts: workers
   roles:
-    - workers
+    - worker

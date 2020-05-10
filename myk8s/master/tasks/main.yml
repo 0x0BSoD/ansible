@@ -15,10 +15,13 @@
     - 10251/tcp
     - 10252/tcp
     - 10255/tcp
-  notify: Reload firewalld
+
+- name: Reload firewalld
+  command: >
+    firewall-cmd --reload
 
 # ==================================
-# k8s init
+# k8s init MASTER
 # ==================================
 
 - name: Check for admin.conf exists in /etc/kubernetes     
@@ -27,11 +30,17 @@
   register: p
 
 - name: Initialize the cluster
-  shell: kubeadm init --pod-network-cidr={{ k8s_net }} >> cluster_initialized.txt
+  command: >
+    kubeadm init \
+    --apiserver-bind-port {{ k8s_cp_port }} \
+    --pod-network-cidr {{ k8s_net }} \
+    --control-plane-endpoint {{ k8s_cp_endpoint }} \
+    --upload-certs \
+    --v=5 
   args:
     chdir: /root
     creates: /etc/kubernetes/admin.conf
-  when: not p.stat.exists
+  when: k8s_master and not p.stat.exists 
 
 - name: Create .kube directory
   become: yes
@@ -40,6 +49,7 @@
     path: $HOME/.kube
     state: directory
     mode: 0755
+  when: k8s_master
 
 - name: Copy admin.conf to user's kube config
   copy:
@@ -47,16 +57,67 @@
     dest: "/root/.kube/config"
     remote_src: yes
     owner: root
+  when: k8s_master
 
-- name: Get k8s version
-  shell: "kubectl version | base64 | tr -d '\n'"
-  register: k8s_version
-
-- name: Init k8s network
+- name: Install calico CNI-plugin
   command: >
-    kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version={{ k8s_version.stdout }}"
+    kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+  when: k8s_master and not p.stat.exists 
 
-- name: Get join command
+- name: Check NetworkReady status
+  command: crictl info
+  register: cmd_res
+  retries: 5
+  until: cmd_res.stdout.find("true") != -1
+  when: k8s_master and not p.stat.exists 
+
+- name: Regen cert
+  command: >
+    kubeadm init phase upload-certs --upload-certs
+  register: upload_cert_out
+  when: k8s_master
+
+- name: Check master node status
+  command: "kubectl get node {{ ansible_hostname }}"
+  register: cmd_res
+  retries: 5
+  until: cmd_res.stdout.find("Ready") != -1
+  when: k8s_master and not p.stat.exists 
+
+- name: Get master join command
+  command: >
+    kubeadm token create 
+    --certificate-key {{ upload_cert_out.stdout_lines | last }} 
+    --print-join-command
+  register: add_master_to_cluster_cmd
+  when: k8s_master
+
+- name: Get worker join command
   command: >
     kubeadm token create --print-join-command
-  register: add_to_cluster_cmd
+  register: add_worker_to_cluster_cmd
+  when: k8s_master
+
+# ==================================
+# k8s init MASTER-BACKUP
+# ==================================
+- name: Join master backup
+  command: "{{ hostvars['k8-master-1'].add_master_to_cluster_cmd.stdout }}"
+  when: not k8s_master
+
+- name: Create .kube directory
+  become: yes
+  become_user: root
+  file:
+    path: $HOME/.kube
+    state: directory
+    mode: 0755
+  when: not k8s_master
+
+- name: Copy admin.conf to user's kube config
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/root/.kube/config"
+    remote_src: yes
+    owner: root
+  when: not k8s_master

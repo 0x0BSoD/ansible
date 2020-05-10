@@ -1,0 +1,48 @@
+---
+- name: Configure firewalld ports
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+  with_items:
+    - 6443/tcp
+
+- name: Configure firewalld, vrrp
+  firewalld:
+    rich_rule: rule protocol value="vrrp" accept
+    permanent: yes
+    state: enabled
+
+- name: Reload firewalld
+  command: >
+    firewall-cmd --reload
+    
+- name: Install nginx, keepalived packages
+  yum: 
+    name: 
+      - nginx
+      - keepalived
+    state: present
+
+- name: Copy the nginx configuration file
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+  notify:
+    - Restart nginx
+
+- name: Copy the keepalived configuration file
+  template:
+    src: keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+  notify:
+    - Restart keepalived
+
+- name: Copy 00-sysctl.conf to /etc/sysctl.d/00-sysctl.conf
+  copy:
+    src: sysctl.d/00-sysctl.conf
+    dest: /etc/sysctl.d/00-sysctl.conf
+
+- name: Reladd sysctl variables
+  command: >
+    sysctl -p /etc/sysctl.d/00-sysctl.conf

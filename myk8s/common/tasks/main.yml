@@ -1,0 +1,58 @@
+---
+- name: Set hostname
+  hostname:
+    name: "{{inventory_hostname}}"
+
+- name: Install chrony, ntpstat and other packages
+  yum: 
+    name: 
+      - chrony
+      - ntpstat
+      - policycoreutils-python-utils
+    state: present
+
+- name: Set NTP pool
+  lineinfile: 
+    dest: /etc/chrony.conf 
+    regexp: "^Server"
+    line: "Server europe.pool.ntp.org"
+    state: present
+
+- name: Start and enable ntp service
+  service:
+    name: chronyd
+    enabled: yes
+    state: restarted
+
+- name: Disable swap
+  shell: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: Rm swapfile from fstab
+  mount:
+    name: swap
+    fstype: swap
+    state: absent
+
+- name: Tune root partittion
+  mount:
+    path: /
+    src: "UUID={{ ansible_mounts | json_query('[?mount == `/`] | [0].uuid') }}"
+    fstype: xfs
+    opts: noatime,nodiratime,allocsize=64m
+    state: present
+
+- name: Update /etc/hosts from inventory
+  lineinfile: dest=/etc/hosts regexp='.*{{item}}$' line='{{hostvars[item].ansible_host}} {{item}}' state=present
+  with_items: '{{groups.all}}'
+
+- name: Disable SELinux
+  selinux:
+    state: disabled  
+
+- name: Disable selinux permament
+  lineinfile:
+    dest: "/etc/sysconfig/selinux"
+    regexp: "^SELINUX=enforcing"
+    line: "SELINUX=disabled"
+    state: present

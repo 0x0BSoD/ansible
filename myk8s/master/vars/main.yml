@@ -1,3 +1,5 @@
 ---
-k8s_net: 10.0.0.0/16
+k8s_net: 192.168.0.0/16
+k8s_cp_port: 6443
+k8s_cp_endpoint: 10.1.1.30:6443
 k8s_token: ""
