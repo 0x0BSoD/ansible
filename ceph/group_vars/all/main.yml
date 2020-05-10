@@ -1,0 +1,3 @@
+---
+  ceph_user_name: "cephadm"
+  ceph_user_password: "$6$mysecretsalt$voycxmfSnKu3Gqiv.y0grPpaj8dXCgANKzuk9.T3nPy/hzCxlIiA7l8LiH.ffB7CHGwl3cMBFS6fCS4cR0K0M."

@@ -1,0 +1,57 @@
+---
+- name: Create .ssh directory
+  file:
+    path: "/home/{{ ceph_user_name }}/.ssh"
+    state: directory
+    mode: 0755
+
+- name: Generate RSA host key
+  openssh_keypair:
+    path: "/home/{{ ceph_user_name }}/.ssh/id_rsa"
+
+- name: Store pub key
+  slurp: src="/home/{{ ceph_user_name }}/.ssh/id_rsa.pub"
+  register: master_ssh_pub_key
+
+- debug: msg="{{ master_ssh_pub_key }}"
+
+- name: Configure firewalld
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+  with_items:
+    - 80/tcp
+    - 2003/tcp
+    - 4505-4506/tcp
+  notify: Reload firewalld
+
+- name: Enable the Ceph yum repository
+  yum:
+    name: "https://download.ceph.com/rpm-mimic/el7/noarch/ceph-release-{{ ceph_version }}.noarch.rpm"
+    state: present
+
+# - name: Enable EPEL repository
+#   yum_repository:
+#     name: epel
+#     description: EPEL YUM repo
+#     baseurl: https://download.fedoraproject.org/pub/epel/$releasever/$basearch/
+
+- name: Install required packages
+  yum:
+    name:
+      - ceph-deploy 
+      - python2-pip
+    state: present
+
+- name: Create ceph_cluster directory
+  file:
+    path: "/ceph_cluster"
+    state: directory
+    mode: 0755
+
+- name: Generate the cluster configuration
+  command: >
+    ceph-deploy new ceph-monitor
+    chdir: /ceph_cluster
+    creates: /ceph_cluster/ceph.conf

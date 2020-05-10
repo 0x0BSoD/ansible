@@ -1,0 +1,49 @@
+---
+- name: Install NTP packages
+  yum: 
+    name: chrony
+    state: present
+
+- name: Set NTP pool
+  lineinfile: 
+    dest: /etc/chrony.conf 
+    regexp: "^Server"
+    line: "Server europe.pool.ntp.org"
+    state: present
+
+- name: Start and enable ntp service
+  service:
+    name: chronyd
+    enabled: yes
+    state: restarted
+
+- name: create the {{ ceph_user_name }} user
+  user:
+    name: "{{ ceph_user_name }}"
+    append: yes
+    state: present
+    shell: /bin/bash
+    password:  "{{ ceph_user_password }}"
+
+- name: Paswordless sudo for {{ ceph_user_name }}
+  copy:
+    content: "cephadm ALL = (root) NOPASSWD:ALL" 
+    dest: /etc/sudoers.d/cephadm
+    backup: yes
+    owner: root
+    group: root
+    mode: 0440
+
+- name: Disable SELinux
+  selinux:
+    state: disabled  
+
+- name: Disable selinux permament
+  lineinfile:
+    dest: "/etc/sysconfig/selinux"
+    regexp: "^SELINUX=enforcing"
+    line: "SELINUX=disabled"
+    state: present
+  
+- name: Reboot the machine
+  reboot:
