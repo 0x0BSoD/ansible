@@ -1,0 +1,39 @@
+---
+- name: Enable epel repo
+  yum:
+    name: epel-release
+    state: present
+
+- name: Install packages
+  yum:
+    name:
+      - transmission-daemon
+    state: present
+
+- name: Stop transmission-daemon 
+  service: 
+    name: transmission-daemon 
+    state: stopped
+
+- name: Copy the transmission-daemon configuration file
+  template:
+    src: transmission-daemon.json.j2
+    dest: /var/lib/transmission/.config/transmission-daemon/settings.json
+
+- name: Start transmission-daemon 
+  service: 
+    name: transmission-daemon 
+    enabled: yes
+    state: restarted
+
+- name: Configure firewalld ports
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+  with_items:
+    - 9091/tcp
+
+- name: Reload firewalld
+  command: >
+    firewall-cmd --reload

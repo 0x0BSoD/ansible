@@ -1,0 +1,28 @@
+---
+- name: Install packages
+  yum:
+    name:
+      - cifs-utils
+    state: present
+
+- name: Create credential file (used for fstab entry)
+  copy:
+    content: |
+      username={{ smb_user }}
+      password={{ smb_password }}
+    dest: "/{{ user }}/.credential"
+    mode: 0600
+
+- name: Create directory for share
+  file:
+    path: "{{ smb_dest_path }}" 
+    state: directory
+    mode: 0755
+
+- name: Create fstab entry for share
+  mount: 
+    state: mounted 
+    fstype: cifs 
+    opts: "credentials=/{{ user }}/.credential,file_mode=0755,dir_mode=0755,user" 
+    src: "{{ smb_source_path }}" 
+    path: "{{ smb_dest_path }}" 

@@ -1,0 +1,4 @@
+---
+user: root
+rpc_user: user
+rpc_password: pass123

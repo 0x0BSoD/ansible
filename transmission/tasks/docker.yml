@@ -1,0 +1,21 @@
+---
+- name: Add docker repo
+  yum_repository:
+    name: Docker
+    description: Docker YUM repo
+    file: docker
+    baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+    gpgkey: https://download.docker.com/linux/centos/gpg
+    enabled: yes
+
+- name: Install docker
+  yum:
+    name: 
+      - docker-ce-3:18.09.0-3.el7
+    state: present
+
+- name: Start and enable docker
+  service:
+    name: docker
+    enabled: yes
+    state: restarted

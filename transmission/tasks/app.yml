@@ -1,0 +1,9 @@
+---
+- name: Copy the app configuration file
+  template:
+    src: app_config.json.j2
+    dest: /opt/app_config.json
+
+- name: Create the container
+  command: >
+    docker run --detach -v  /opt/app_config.json:/config.json --net host zlodey23/transmission-bot  

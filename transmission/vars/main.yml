@@ -1,0 +1,7 @@
+---
+# vars file for transmission
+smb_user: user
+smb_password: pass123
+smb_source_path: //share
+smb_dest_path: /path/to/dir
+telegram_token: token

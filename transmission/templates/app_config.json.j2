@@ -1,0 +1,19 @@
+{
+  "token":"{{ telegram_token }}",
+  "debug": false,
+  "transmission": {
+    "uri": "http://{{ ansible_default_ipv4.address }}:9091/transmission/rpc",
+    "user": "{{ rpc_user }}",
+    "password": "{{ rpc_password }}"
+  },
+  "img_dir": "/app/img",
+  "default_download_dir": "{{ smb_dest_path }}",
+  "categories": {
+    "Films": "/Films",
+    "TVSeries": "/TVSeries",
+    "Soft": "/Soft",
+    "Education": "/Education",
+    "Games": "/Games",
+    "Books": "/Books"
+  }
+}
