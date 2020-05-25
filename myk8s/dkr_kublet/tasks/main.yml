@@ -19,14 +19,25 @@
     gpgkey: https://download.docker.com/linux/centos/gpg
     enabled: yes
 
-- name: Install docker, kubeadm and other packages
+- name: Install containerd
+  yum:
+    name: https://download.docker.com/linux/centos/7/x86_64/stable/Packages/containerd.io-{{ containerd_version }}.x86_64.rpm
+    state: present
+  
+- name: Install Docker
+  yum:
+    name:
+      - docker-ce-{{ docker_version }}
+      - docker-ce-cli-{{ docker_version }}
+    state: present
+    
+- name: Install kubeadm and other packages
   yum:
     name: 
       - wget 
       - net-tools
       - device-mapper-persistent-data 
       - lvm2
-      - docker-ce-3:18.09.0-3.el7
       - kubelet 
       - kubeadm 
       - kubectl
@@ -45,8 +56,8 @@
     mode: '0755'
 
 - name: Copy daemon.json
-  copy:
-    src: docker/daemon.json
+  template:
+    src: daemon.json.j2
     dest: /etc/docker/daemon.json
 
 - name: Start and enable docker
@@ -65,9 +76,11 @@
     name: overlay
     state: present
 
-- name: Disable IPv6 on {{ ansible_default_ipv4.interface }} interface
-  command: >
-    nmcli connection modify {{ ansible_default_ipv4.interface }} ipv6.method ignore
+# Now working if network changed thrue cloud-init
+# - name: Disable IPv6 on {{ ansible_default_ipv4.interface }} interface
+#   command: >
+#     nmcli connection modify {{ ansible_default_ipv4.interface }} ipv6.method ignore
+#   when: (ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "8")
 
 - name: Check if iptables-legacy file exists
   stat: 
@@ -79,10 +92,17 @@
     update-alternatives --set iptables /usr/sbin/iptables-legacy
   when: iptables_legacy.stat.exists == True
 
-- name: Copy 00-sysctl.conf to /etc/sysctl.d/00-sysctl.conf
+- name: Copy cnt8-00-sysctl.conf to /etc/sysctl.d/00-sysctl.conf
   copy:
-    src: sysctl.d/00-sysctl.conf
+    src: sysctl.d/cnt8-00-sysctl.conf
     dest: /etc/sysctl.d/00-sysctl.conf
+  when: (ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "8")
+
+- name: Copy cnt7-00-sysctl.conf to /etc/sysctl.d/00-sysctl.conf
+  copy:
+    src: sysctl.d/cnt7-00-sysctl.conf
+    dest: /etc/sysctl.d/00-sysctl.conf
+  when: (ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "7")
 
 - name: Reladd sysctl variables
   command: >
@@ -92,6 +112,7 @@
   copy:
     src: NetworkManager/conf.d/calico.conf
     dest: /etc/NetworkManager/conf.d/calico.conf
+  when: (ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "8")
 
 - name: Configure runtime cgroups used by kubelet
   copy:

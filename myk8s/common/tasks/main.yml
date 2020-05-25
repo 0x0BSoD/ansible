@@ -3,17 +3,24 @@
   hostname:
     name: "{{inventory_hostname}}"
 
+- name: Start and enable firewalld
+  service:
+    name: firewalld
+    enabled: yes
+    state: restarted
+
 - name: Install chrony, ntpstat and other packages
-  yum: 
-    name: 
+  yum:
+    name:
       - chrony
       - ntpstat
       - policycoreutils-python-utils
     state: present
+  when: (ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "8")
 
 - name: Set NTP pool
-  lineinfile: 
-    dest: /etc/chrony.conf 
+  lineinfile:
+    dest: /etc/chrony.conf
     regexp: "^Server"
     line: "Server europe.pool.ntp.org"
     state: present
@@ -45,10 +52,11 @@
 - name: Update /etc/hosts from inventory
   lineinfile: dest=/etc/hosts regexp='.*{{item}}$' line='{{hostvars[item].ansible_host}} {{item}}' state=present
   with_items: '{{groups.all}}'
+  when: i_have_no_dns | bool
 
 - name: Disable SELinux
   selinux:
-    state: disabled  
+    state: disabled
 
 - name: Disable selinux permament
   lineinfile:

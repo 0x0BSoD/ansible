@@ -19,8 +19,8 @@ stream {
         # Load balance algorithm
         least_conn;
 
-        {% for v in nginx_stream_params %}
-        {{ v }};
+        {% for v in groups.masters %}
+        server {{ v }}:6443;
         {% endfor %}
 
     }

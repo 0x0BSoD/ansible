@@ -28,21 +28,36 @@
   template:
     src: nginx.conf.j2
     dest: /etc/nginx/nginx.conf
-  notify:
-    - Restart nginx
+
+- name: Restart nginx
+  service:
+    name: nginx
+    enabled: yes
+    state: restarted
 
 - name: Copy the keepalived configuration file
   template:
     src: keepalived.conf.j2
     dest: /etc/keepalived/keepalived.conf
-  notify:
-    - Restart keepalived
 
-- name: Copy 00-sysctl.conf to /etc/sysctl.d/00-sysctl.conf
+- name: Restart keepalived
+  service:
+    name: keepalived
+    enabled: yes
+    state: restarted
+
+- name: Copy cnt8-00-sysctl.conf to /etc/sysctl.d/00-sysctl.conf
   copy:
-    src: sysctl.d/00-sysctl.conf
+    src: sysctl.d/cnt8-00-sysctl.conf
     dest: /etc/sysctl.d/00-sysctl.conf
+  when: (ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "8")
 
-- name: Reladd sysctl variables
+- name: Copy cnt7-00-sysctl.conf to /etc/sysctl.d/00-sysctl.conf
+  copy:
+    src: sysctl.d/cnt7-00-sysctl.conf
+    dest: /etc/sysctl.d/00-sysctl.conf
+  when: (ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "7")
+
+- name: Reload sysctl variables
   command: >
     sysctl -p /etc/sysctl.d/00-sysctl.conf

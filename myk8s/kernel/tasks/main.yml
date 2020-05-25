@@ -1,0 +1,127 @@
+---  
+- name: Install development tools package group
+  yum: 
+    name: "@Development tools" 
+    state: present 
+    update_cache: yes
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Install kernel dev packages
+  yum: 
+    name:   
+      - ncurses-devel
+      - bc
+      - openssl-devel
+      - hmaccalc
+      - zlib-devel
+      - binutils-devel
+      - elfutils-libelf-devel
+    state: present
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Download kernel itself
+  get_url:
+    url: https://cdn.kernel.org/pub/linux/kernel/v{{ kernel_major_ver }}.x/linux-{{ kernel_ver }}.tar.xz
+    dest: ~/linux-{{ kernel_ver }}.tar.xz
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Untar kernel
+  unarchive:
+    remote_src: yes
+    src:  ~/linux-{{ kernel_ver }}.tar.xz
+    dest: ~/
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Copy kernel config
+  copy: 
+    src: ./kernel.config 
+    dest: ~/linux-{{ kernel_ver }}/.config
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Make clean
+  make:
+    target: clean
+    chdir: ~/linux-{{ kernel_ver }}/
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Make olddefconfig
+  make:
+    target: olddefconfig
+    chdir: ~/linux-{{ kernel_ver }}/
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Make
+  shell: make -j{{ ansible_processor_vcpus + 1 }}
+  async: 3600                                                          
+  args:
+    chdir: ~/linux-{{ kernel_ver }}/
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Make modules
+  shell: make -j{{ ansible_processor_vcpus + 1 }} modules
+  async: 3600                                                          
+  args:
+    chdir: ~/linux-{{ kernel_ver }}/
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Make modules_install
+  shell: make -j{{ ansible_processor_vcpus + 1 }} modules_install
+  async: 3600                                                          
+  args:
+    chdir: ~/linux-{{ kernel_ver }}/
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Make install
+  make:
+    target: install
+    chdir: ~/linux-{{ kernel_ver }}/
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Restart machine #1
+  reboot:
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Rerun make install to correct grub entry order
+  command: >
+   make install 
+  args:
+    chdir: ~/linux-{{ kernel_ver }}/
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Get GRUB menu entries
+  shell: >
+    awk -F\' '$1=="menuentry " {print $2}' /etc/grub2.cfg
+  register: grub_entries
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Check kernel is in GRUB menu
+  assert: 
+    that: "'{{ grub_entries.stdout_lines | map('regex_search', '.*'+kernel_ver|string+'.*') | select('string') | first }}' != ''"
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Set new kernel for boot
+  command: >
+    grub2-set-default "{{ grub_entries.stdout_lines | map('regex_search', '.*'+kernel_ver|string+'.*') | select('string') | first }}"
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Regen GRUB config
+  command: >
+    grub2-mkconfig -o /boot/grub2/grub.cfg
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Restart machine #2
+  reboot:
+  when:  kernel_ver  !=  ansible_kernel 
+
+- name: Regather fact filtering for ansible_kernel
+  setup: filter='ansible_kernel'
+  when:  kernel_ver  !=  ansible_kernel
+
+- name: Check kernel is at the correct version
+  assert: 
+    that: "'{{ kernel_ver }}' == '{{ ansible_kernel }}'"
+  when:  kernel_ver  !=  ansible_kernel
+
+- name: Remove artifacts
+  shell: rm -rf ~/linux-{{ kernel_ver }}*
+  when:  kernel_ver  !=  ansible_kernel

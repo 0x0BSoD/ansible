@@ -1,6 +1,7 @@
 {
     "exec-opts": ["native.cgroupdriver=systemd"],
     "log-driver": "json-file",
+    "data-root": "{{ docker_data_folder }}",
     "log-opts": {
       "max-size": "100m"
     },

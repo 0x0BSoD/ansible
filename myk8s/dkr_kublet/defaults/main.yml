@@ -1,0 +1,4 @@
+---
+containerd_version: 1.2.6-3.3.el7
+docker_version: 19.03.9-3.el7.x86_64
+docker_data_folder: /var/lib/docker

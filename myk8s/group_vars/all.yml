@@ -1,0 +1,7 @@
+---
+i_have_no_dns: true
+lb_vip: 10.1.1.30
+# docker_data_folder: /mnt/data
+kernel_major_ver: 4
+# version without subminor version not working properly i.e 5.1
+kernel_ver: 4.4.20

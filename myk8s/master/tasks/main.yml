@@ -9,6 +9,7 @@
     permanent: yes
     state: enabled
   with_items:
+    - 179/tcp
     - 6443/tcp
     - 2379-2380/tcp
     - 10250/tcp
@@ -36,7 +37,7 @@
     --pod-network-cidr {{ k8s_net }} \
     --control-plane-endpoint {{ k8s_cp_endpoint }} \
     --upload-certs \
-    --v=5 
+    --ignore-preflight-errors=all
   args:
     chdir: /root
     creates: /etc/kubernetes/admin.conf
@@ -64,6 +65,25 @@
     kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
   when: k8s_master and not p.stat.exists 
 
+# TODO: It's wrong check
+# Actual response when NetworkReady is true
+# {
+#   "status": {
+#     "conditions": [
+#       {
+#         "type": "RuntimeReady",
+#         "status": true,
+#         "reason": "",
+#         "message": ""
+#       },
+#       {
+#         "type": "NetworkReady",
+#         "status": true,
+#         "reason": "",
+#         "message": ""
+#       }
+#     ]
+#   }
 - name: Check NetworkReady status
   command: crictl info
   register: cmd_res
@@ -102,7 +122,7 @@
 # k8s init MASTER-BACKUP
 # ==================================
 - name: Join master backup
-  command: "{{ hostvars['k8-master-1'].add_master_to_cluster_cmd.stdout }}"
+  command: "{{ hostvars[groups.masters[0]].add_master_to_cluster_cmd.stdout }}"
   when: not k8s_master
 
 - name: Create .kube directory

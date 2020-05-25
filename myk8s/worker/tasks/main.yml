@@ -9,6 +9,7 @@
     permanent: yes
     state: enabled
   with_items:
+    - 179/tcp
     - 10250/tcp
     - 10255/tcp
     - 30000-32767/tcp
@@ -19,4 +20,4 @@
     firewall-cmd --reload
 
 - name: Join worker node
-  command: "{{ hostvars['k8-master-1'].add_worker_to_cluster_cmd.stdout }}"
+  command: "{{ hostvars[groups.masters[0]].add_worker_to_cluster_cmd.stdout }}"
