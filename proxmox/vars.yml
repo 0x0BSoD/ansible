@@ -1,0 +1,7 @@
+---
+api_host: 10.1.1.208
+api_user: root@pam
+api_password: pass
+node: pve
+clone_vm: golden-cnt8
+key_name: id_rsa.pub

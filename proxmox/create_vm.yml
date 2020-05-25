@@ -1,0 +1,52 @@
+---
+- name: Initial setup VM
+  hosts: localhost
+  vars_files:
+    - vars.yml
+    - vms.yml
+  tasks:
+    - name: Clone VMs
+      proxmox_kvm:
+        timeout: 3600
+        node: "{{ node }}"
+        name: "{{ item.value.name }}"
+        newid: "{{ item.value.vmid }}"
+        api_user: "{{ api_user }}"
+        api_password: "{{ api_password }}"
+        api_host: "{{ api_host }}"
+        clone: "{{ clone_vm }}"
+        full: yes
+      with_dict: "{{ vms }}"
+
+    - name: Set IP addresses
+      command: "qm set {{ item.vmid }}  --ipconfig0 ip={{ item.ipaddress }}"
+      with_dict: "{{ vms }}"
+
+    - name: Copy SSH key
+      command: "qm set {{ item.vmid }} --sshkey {{ key_name }}"
+      with_dict: "{{ vms }}"
+
+    - name: Update VMs
+      proxmox_kvm:
+        timeout: 3600
+        api_host:     "{{ api_host }}"
+        api_user:     "{{ api_user }}"
+        api_password: "{{ api_password }}"
+        cores:        "{{ item.cores }}"
+        sockets:      "{{ item.sockets }}"
+        memory:       "{{ item.memory }}"
+        update:       yes
+        vmid:         "{{ item.vmid }}"
+        node:         "{{ node }}"
+        name:         "{{ item.name }}"
+      with_dict: "{{ vms }}"
+
+    - name: Start VMs
+      proxmox_kvm:
+        api_host:     "{{ api_host }}"
+        api_password: "{{ api_password }}"
+        api_user:     "{{ api_user }}"
+        vmid:         "{{ item.vmid }}"
+        node:         "{{ node }}"
+        state:        started
+      with_dict: "{{ vms }}"
